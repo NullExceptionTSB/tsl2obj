@@ -110,18 +110,18 @@ int main(int argc, char* argv[]) {
     memcpy(strtab + strlen(argv[3]) + 2, argv[4], strlen(argv[4]) + 1);
 
     //generate .symtab segment
-    size_t symtab_len = sizeof(elfsymbol64) * 2;
-    elfsymbol64* symtab = calloc(2, sizeof(elfsymbol64)); //index 1 is data, index 2 is length
+    size_t symtab_len = sizeof(elfsymbol64) * 3;
+    elfsymbol64* symtab = calloc(3, sizeof(elfsymbol64)); //index 1 is data, index 2 is length
 
-    symtab[0].st_name = 1;
-    symtab[0].st_info = ELF_STINFO(STT_NOTYPE, STB_GLOBAL);
-    symtab[0].st_shndx = 1;
-    symtab[0].st_value = 0; //0 from start of *section*, not image
-
-    symtab[1].st_name = strlen(argv[3])+2;
+    symtab[1].st_name = 1;
     symtab[1].st_info = ELF_STINFO(STT_NOTYPE, STB_GLOBAL);
-    symtab[1].st_shndx = 0xFFF1; //this is what objcopy spit out, idk why
-    symtab[1].st_value = (uint8_t*)binfile_sz;
+    symtab[1].st_shndx = 1;
+    symtab[1].st_value = 0; //0 from start of *section*, not image
+
+    symtab[2].st_name = strlen(argv[3])+2;
+    symtab[2].st_info = ELF_STINFO(STT_NOTYPE, STB_GLOBAL);
+    symtab[2].st_shndx = 0xFFF1; //this is what objcopy spit out, idk why
+    symtab[2].st_value = (uint8_t*)binfile_sz;
 
     //init sh_name
     elf_data_section_header->sh_name = shstrtab_get_offset(".data", shstrtab, shstrtab_len);
