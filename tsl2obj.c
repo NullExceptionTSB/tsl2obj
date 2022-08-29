@@ -91,6 +91,7 @@ int main(int argc, char* argv[]) {
     fclose(binfile);
     
     //generate ELF file structures
+    int data_len = binfile_sz + sizeof(int);
     elfheader* elf_header = generate_elf_headers_obj();
     elfsechdr* elf_data_section_header = calloc(1, sizeof(elfsechdr));
     elfsechdr* elf_null_section_header = calloc(1, sizeof(elfsechdr));
@@ -117,11 +118,13 @@ int main(int argc, char* argv[]) {
     symtab[1].st_info = ELF_STINFO(STT_NOTYPE, STB_GLOBAL);
     symtab[1].st_shndx = 1;
     symtab[1].st_value = 0; //0 from start of *section*, not image
+    symtab[1].st_size = binfile_sz;
 
     symtab[2].st_name = strlen(argv[3])+2;
     symtab[2].st_info = ELF_STINFO(STT_NOTYPE, STB_GLOBAL);
-    symtab[2].st_shndx = 0xFFF1; //this is what objcopy spit out, idk why
-    symtab[2].st_value = (uint8_t*)binfile_sz;
+    symtab[2].st_shndx = 1;
+    symtab[2].st_value = (uint8_t*)binfile_sz; //right after the last thing
+    symtab[2].st_size = sizeof(int);
 
     //init sh_name
     elf_data_section_header->sh_name = shstrtab_get_offset(".data", shstrtab, shstrtab_len);
@@ -136,7 +139,7 @@ int main(int argc, char* argv[]) {
     elf_shstrtab_section_header->sh_type = SHT_STRTAB;
     //init sh_offset
     elf_data_section_header->sh_offset = sizeof(elfheader);
-    elf_symtab_section_header->sh_offset = elf_data_section_header->sh_offset + binfile_sz;
+    elf_symtab_section_header->sh_offset = elf_data_section_header->sh_offset + data_len;
     elf_strtab_section_header->sh_offset = elf_symtab_section_header->sh_offset + symtab_len;
     elf_shstrtab_section_header->sh_offset = elf_strtab_section_header->sh_offset + strtab_len;
     elf_header->e_shoff = (elfsechdr*)(elf_shstrtab_section_header->sh_offset + shstrtab_len);
@@ -148,7 +151,7 @@ int main(int argc, char* argv[]) {
     elf_shstrtab_section_header->sh_addralign = 1;
 
     //init sh_size
-    elf_data_section_header->sh_size = binfile_sz;
+    elf_data_section_header->sh_size = data_len;
     elf_symtab_section_header->sh_size = symtab_len;
     elf_strtab_section_header->sh_size = strtab_len;
     elf_shstrtab_section_header->sh_size = shstrtab_len;
@@ -165,6 +168,7 @@ int main(int argc, char* argv[]) {
     FILE* output = fopen(argv[2], "wb");
     fwrite(elf_header, 1, sizeof(elfheader), output);
     fwrite(binfile_data, 1, binfile_sz, output);
+    fwrite(&binfile_sz, sizeof(int), 1, output);
     fwrite(symtab, 1, symtab_len, output);
     fwrite(strtab, 1, strtab_len, output);
     fwrite(shstrtab, 1, shstrtab_len, output);
